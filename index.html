@@ -1,0 +1,116 @@
+<?php
+// Start session
+session_start();
+
+// Include database config
+include "config.php";
+
+// Get approved businesses from database
+$businesses_sql = "SELECT * FROM businesses WHERE status = 'approved' ORDER BY id DESC";
+$businesses_result = mysqli_query($conn, $businesses_sql);
+$businesses = [];
+while ($row = mysqli_fetch_assoc($businesses_result)) {
+    $businesses[] = $row;
+}
+
+// Get tourist spots from database
+$spots_sql = "SELECT * FROM tourist_spots ORDER BY id DESC";
+$spots_result = mysqli_query($conn, $spots_sql);
+$tourist_spots = [];
+while ($row = mysqli_fetch_assoc($spots_result)) {
+    $tourist_spots[] = $row;
+}
+
+// Check if user is logged in
+$logged_in = isset($_SESSION['user_id']);
+$user_name = isset($_SESSION['name']) ? $_SESSION['name'] : '';
+$user_role = isset($_SESSION['role']) ? $_SESSION['role'] : '';
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MAB-BILIS</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+    <div class="logo">MAB-BILIS</div>
+    <ul id="navLinks">
+        <li><a href="index.php">Home</a></li>
+        <li><a href="#businesses">Local businesses</a></li>
+        <li><a href="#spots">Tourist Spots</a></li>
+        <li><a href="contact.php">Contact</a></li>
+        <?php if ($logged_in): ?>
+            <?php if ($user_role === 'admin'): ?>
+                <li><a href="admin_dashboard.php">Dashboard</a></li>
+            <?php else: ?>
+                <li><a href="business_dashboard.php">Dashboard</a></li>
+            <?php endif; ?>
+            <li><a href="logout.php">Logout (<?php echo htmlspecialchars($user_name); ?>)</a></li>
+        <?php else: ?>
+            <li><a href="login.php">Login</a></li>
+            <li><a href="signup.php">Sign Up</a></li>
+        <?php endif; ?>
+    </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+    <h1>MAB-BILIS</h1>
+    <p>Your guide to the best products, services, and tourist spots in Mabinay. Explore, discover, and enjoy!</p>
+    <a href="#businesses" class="btn">Explore Now</a>
+</section>
+
+<!-- LOCAL BUSINESSES -->
+<section id="businesses">
+    <h2>Local businesses</h2>
+    <div class="cards">
+        <?php if (count($businesses) > 0): ?>
+            <?php foreach ($businesses as $business): ?>
+                <a href="products.php?businessId=<?php echo $business['id']; ?>" class="card business-card">
+                    <img src="<?php echo htmlspecialchars($business['image'] ?: 'https://img.icons8.com/color/96/000000/shop.png'); ?>" alt="<?php echo htmlspecialchars($business['business_name']); ?>">
+                    <h3><?php echo htmlspecialchars($business['business_name']); ?></h3>
+                    <p><?php echo htmlspecialchars($business['description'] ?: $business['category']); ?></p>
+                    <p><strong>Address:</strong> <?php echo htmlspecialchars($business['address']); ?></p>
+                    <p><strong>Contact:</strong> <?php echo htmlspecialchars($business['contact_number']); ?></p>
+                </a>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <p style="text-align: center;">No businesses registered yet.</p>
+        <?php endif; ?>
+    </div>
+</section>
+
+<!-- TOURIST SPOTS -->
+<section id="spots">
+    <h2>Tourist Spots</h2>
+    <div class="cards">
+        <?php if (count($tourist_spots) > 0): ?>
+            <?php foreach ($tourist_spots as $spot): ?>
+                <div class="card">
+                    <img src="<?php echo htmlspecialchars($spot['image'] ?: 'https://img.icons8.com/color/96/000000/place-marker.png'); ?>" alt="<?php echo htmlspecialchars($spot['name']); ?>">
+                    <h3><?php echo htmlspecialchars($spot['name']); ?></h3>
+                    <p><?php echo htmlspecialchars($spot['description']); ?></p>
+                    <p><strong>Location:</strong> <?php echo htmlspecialchars($spot['location']); ?></p>
+                    <a href="book.php?spot_id=<?php echo $spot['id']; ?>" class="btn">Book Now</a>
+                </div>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <p style="text-align: center;">No tourist spots registered yet.</p>
+        <?php endif; ?>
+    </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+    &copy; 2026 MAB-BILIS. All rights reserved.
+</footer>
+
+</body>
+</html>

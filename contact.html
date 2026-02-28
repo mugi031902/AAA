@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us - MAB-BILIS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+    <div class="logo">MAB-BILIS</div>
+    <ul id="navLinks">
+        <li><a href="index.php">Home</a></li>
+        <li><a href="#businesses">Local businesses</a></li>
+        <li><a href="#spots">Tourist Spots</a></li>
+        <li><a href="contact.php">Contact</a></li>
+        <li><a href="login.php">Login</a></li>
+        <li><a href="signup.php">Sign Up</a></li>
+    </ul>
+</nav>
+
+<!-- CONTACT SECTION -->
+<section class="contact-section">
+    <h2>Contact Us</h2>
+    <p class="contact-desc">Have questions? We'd love to hear from you!</p>
+    
+    <div class="contact-container">
+        <div class="contact-card">
+            <h3>Get in Touch</h3>
+            <div class="contact-item">
+                <strong>Email:</strong>
+                <p>info@mab-bilis.com</p>
+            </div>
+            <div class="contact-item">
+                <strong>Phone:</strong>
+                <p>0912-345-6789</p>
+            </div>
+            <div class="contact-item">
+                <strong>Address:</strong>
+                <p>Mabinay, Negros Oriental, Philippines</p>
+            </div>
+            <div class="contact-item">
+                <strong>Business Hours:</strong>
+                <p>Monday - Friday: 8:00 AM - 5:00 PM</p>
+                <p>Saturday: 9:00 AM - 12:00 PM</p>
+            </div>
+        </div>
+        
+        <div class="contact-card">
+            <h3>Send us a Message</h3>
+            <form onsubmit="return false;">
+                <input type="text" placeholder="Your Name" required>
+                <input type="email" placeholder="Your Email" required>
+                <input type="text" placeholder="Subject" required>
+                <textarea placeholder="Your Message" rows="5" required></textarea>
+                <button type="submit" class="btn-submit">Send Message</button>
+            </form>
+        </div>
+    </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+    &copy; 2026 MAB-BILIS. All rights reserved.
+</footer>
+
+<script src="app.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeData();
+        updateNavigation();
+    });
+</script>
+
+<style>
+    .contact-section {
+        padding: 80px 50px;
+        text-align: center;
+    }
+    
+    .contact-section h2 {
+        font-size: 36px;
+        color: #2e7d32;
+        margin-bottom: 20px;
+    }
+    
+    .contact-desc {
+        font-size: 18px;
+        color: #555;
+        margin-bottom: 40px;
+    }
+    
+    .contact-container {
+        display: flex;
+        gap: 40px;
+        justify-content: center;
+        flex-wrap: wrap;
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+    
+    .contact-card {
+        background: #fff;
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        flex: 1;
+        min-width: 300px;
+        text-align: left;
+    }
+    
+    .contact-card h3 {
+        color: #2e7d32;
+        margin-bottom: 25px;
+        font-size: 24px;
+    }
+    
+    .contact-item {
+        margin-bottom: 20px;
+    }
+    
+    .contact-item strong {
+        color: #2e7d32;
+        display: block;
+        margin-bottom: 5px;
+    }
+    
+    .contact-item p {
+        color: #555;
+        margin: 0;
+    }
+    
+    .contact-card input,
+    .contact-card textarea {
+        width: 100%;
+        padding: 12px 15px;
+        margin-bottom: 15px;
+        border-radius: 12px;
+        border: 1px solid #ccc;
+        font-size: 16px;
+        font-family: 'Roboto', sans-serif;
+    }
+    
+    .btn-submit {
+        width: 100%;
+        padding: 15px;
+        background: #2e7d32;
+        color: #fff;
+        font-weight: 600;
+        border: none;
+        border-radius: 50px;
+        cursor: pointer;
+        transition: 0.3s;
+        font-size: 16px;
+    }
+    
+    .btn-submit:hover {
+        background: #43a047;
+        transform: translateY(-2px);
+    }
+</style>
+
+</body>
+</html>

@@ -1,0 +1,44 @@
+<?php
+// Start session at the beginning
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+$host = "localhost";
+$user = "root";
+$pass = "";
+$db = "mab_biliss";
+
+$conn = mysqli_connect($host, $user, $pass, $db);
+
+if (!$conn) {
+    die("Connection failed: " . mysqli_connect_error());
+}
+
+// Function to check if user is logged in
+function isLoggedIn() {
+    return isset($_SESSION['user_id']);
+}
+
+// Function to check if user is admin
+function isAdmin() {
+    return isset($_SESSION['role']) && $_SESSION['role'] === 'admin';
+}
+
+// Function to check if user is business
+function isBusiness() {
+    return isset($_SESSION['role']) && $_SESSION['role'] === 'business';
+}
+
+// Function to get current user
+function getCurrentUser() {
+    if (isLoggedIn()) {
+        return [
+            'id' => $_SESSION['user_id'],
+            'name' => $_SESSION['name'],
+            'email' => $_SESSION['email'],
+            'role' => $_SESSION['role']
+        ];
+    }
+    return null;
+}
+?>

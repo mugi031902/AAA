@@ -1,0 +1,14 @@
+<?php
+include "config.php";
+
+$result = mysqli_query($conn, "SELECT * FROM users WHERE email='admin@mab-bilis.com'");
+$row = mysqli_fetch_assoc($result);
+
+echo "<h2>Login Test</h2>";
+echo "<p>Email: admin@mab-bilis.com</p>";
+echo "<p>Password to test: admin123</p>";
+echo "<p>Hash in database: " . $row['password'] . "</p>";
+echo "<p>Password verify result: " . (password_verify('admin123', $row['password']) ? 'TRUE - Works!' : 'FALSE - Failed') . "</p>";
+
+mysqli_close($conn);
+?>

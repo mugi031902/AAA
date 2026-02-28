@@ -1,0 +1,138 @@
+<?php
+// Include database config
+include "config.php";
+
+// Get business ID from URL
+$business_id = isset($_GET['businessId']) ? intval($_GET['businessId']) : 0;
+
+// Get business details
+$business_sql = "SELECT * FROM businesses WHERE id = $business_id AND status = 'approved'";
+$business_result = mysqli_query($conn, $business_sql);
+$business = mysqli_fetch_assoc($business_result);
+
+// Get products for this business
+$products_sql = "SELECT * FROM products WHERE business_id = $business_id ORDER BY id DESC";
+$products_result = mysqli_query($conn, $products_sql);
+$products = [];
+while ($row = mysqli_fetch_assoc($products_result)) {
+    $products[] = $row;
+}
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Products - MAB-BILIS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 50px;
+            background: #2e7d32;
+            color: #fff;
+        }
+        .navbar .logo {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+        .navbar ul {
+            display: flex;
+            list-style: none;
+            gap: 20px;
+        }
+        .navbar ul li a {
+            color: #fff;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .back-link {
+            display: inline-block;
+            margin: 20px;
+            color: #2e7d32;
+            font-weight: 500;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .business-desc {
+            text-align: center;
+            color: #555;
+            margin-bottom: 40px;
+            font-size: 16px;
+            padding: 0 20px;
+        }
+        .product-card .price {
+            font-size: 24px;
+            color: #2e7d32;
+            font-weight: 700;
+            margin-top: 10px;
+        }
+        .product-card .category {
+            font-size: 14px;
+            color: #888;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+    <div class="logo">MAB-BILIS</div>
+    <ul>
+        <li><a href="index.php">Home</a></li>
+        <li><a href="#businesses">Local businesses</a></li>
+        <li><a href="#spots">Tourist Spots</a></li>
+        <li><a href="login.php">Login</a></li>
+    </ul>
+</nav>
+
+<!-- PRODUCTS SECTION -->
+<section id="products">
+    <a href="index.php" class="back-link">← Back to Home</a>
+    
+    <?php if ($business): ?>
+        <h2 id="businessTitle"><?php echo htmlspecialchars($business['business_name']); ?> Products</h2>
+        <p id="businessDescription" class="business-desc"><?php echo htmlspecialchars($business['description']); ?></p>
+        
+        <div id="productsContainer" class="cards">
+            <?php if (count($products) > 0): ?>
+                <?php foreach ($products as $product): ?>
+                    <div class="card product-card">
+                        <img src="<?php echo htmlspecialchars($product['image'] ?: 'https://img.icons8.com/color/96/000000/product.png'); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>">
+                        <h3><?php echo htmlspecialchars($product['name']); ?></h3>
+                        <p><?php echo htmlspecialchars($product['description']); ?></p>
+                        <p class="category">Category: <?php echo htmlspecialchars($product['category']); ?></p>
+                        <p class="price">₱<?php echo number_format($product['price'], 2); ?></p>
+                    </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <p style="text-align: center;">No products available for this business yet.</p>
+            <?php endif; ?>
+        </div>
+    <?php else: ?>
+        <h2>Business Not Found</h2>
+        <p style="text-align: center;">The business you're looking for doesn't exist or hasn't been approved.</p>
+    <?php endif; ?>
+</section>
+
+<!-- FOOTER -->
+<footer>
+    &copy; 2026 MAB-BILIS. All rights reserved.
+</footer>
+
+</body>
+</html>

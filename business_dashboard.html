@@ -1,0 +1,458 @@
+<?php
+// Start session
+session_start();
+
+// Include database config
+include "config.php";
+
+// Check if user is logged in
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit;
+}
+
+// Check if user is business
+if ($_SESSION['role'] !== 'business') {
+    header("Location: admin_dashboard.php");
+    exit;
+}
+
+// Get business info
+$user_id = $_SESSION['user_id'];
+$biz_sql = "SELECT * FROM businesses WHERE user_id = $user_id";
+$biz_result = mysqli_query($conn, $biz_sql);
+$business = mysqli_fetch_assoc($biz_result);
+
+// Handle add product form
+$product_message = "";
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add_product'])) {
+    $name = mysqli_real_escape_string($conn, $_POST['product_name']);
+    $description = mysqli_real_escape_string($conn, $_POST['product_description']);
+    $price = mysqli_real_escape_string($conn, $_POST['product_price']);
+    $category = mysqli_real_escape_string($conn, $_POST['product_category']);
+    $image = mysqli_real_escape_string($conn, $_POST['product_image']);
+    
+    if (!$image) {
+        $image = "https://img.icons8.com/color/96/000000/product.png";
+    }
+    
+    $insert_sql = "INSERT INTO products (business_id, name, description, price, category, image) 
+                   VALUES ('{$business['id']}', '$name', '$description', '$price', '$category', '$image')";
+    
+    if (mysqli_query($conn, $insert_sql)) {
+        $product_message = "Product added successfully!";
+    } else {
+        $product_message = "Error adding product: " . mysqli_error($conn);
+    }
+}
+
+// Handle delete product
+if (isset($_GET['delete_product'])) {
+    $product_id = intval($_GET['delete_product']);
+    $delete_sql = "DELETE FROM products WHERE id = $product_id AND business_id = {$business['id']}";
+    mysqli_query($conn, $delete_sql);
+    header("Location: business_dashboard.php");
+    exit;
+}
+
+// Get products
+$products_sql = "SELECT * FROM products WHERE business_id = {$business['id']} ORDER BY id DESC";
+$products_result = mysqli_query($conn, $products_sql);
+$products = [];
+while ($row = mysqli_fetch_assoc($products_result)) {
+    $products[] = $row;
+}
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Dashboard - MAB-BILIS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Roboto', sans-serif;
+        }
+        body {
+            background: #e8f5e9;
+            min-height: 100vh;
+        }
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 50px;
+            background: #2e7d32;
+            color: #fff;
+        }
+        .navbar .logo {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+        .navbar ul {
+            display: flex;
+            list-style: none;
+            gap: 20px;
+        }
+        .navbar ul li a {
+            color: #fff;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .navbar ul li a:hover {
+            text-decoration: underline;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .dashboard-header h1 {
+            color: #2e7d32;
+            font-size: 32px;
+        }
+        .welcome-msg {
+            background: #fff;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .welcome-msg h2 {
+            color: #2e7d32;
+            margin-bottom: 10px;
+        }
+        .welcome-msg p {
+            color: #666;
+        }
+        .status-pending {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 8px;
+        }
+        .status-approved {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 8px;
+        }
+        .status-rejected {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 8px;
+        }
+        .business-card {
+            background: #fff;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .business-card h2 {
+            color: #2e7d32;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        .info-item {
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 10px;
+        }
+        .info-item label {
+            display: block;
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        .info-item p {
+            color: #333;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-logout {
+            background: #f44336;
+            color: #fff;
+        }
+        .btn-logout:hover {
+            background: #d32f2f;
+        }
+        .btn-add {
+            background: #4caf50;
+            color: #fff;
+        }
+        .btn-add:hover {
+            background: #388e3c;
+        }
+        .btn-delete {
+            background: #f44336;
+            color: #fff;
+            padding: 8px 15px;
+            font-size: 14px;
+        }
+        .btn-delete:hover {
+            background: #d32f2f;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        /* Product Form */
+        .add-product-form {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .add-product-form h3 {
+            color: #2e7d32;
+            margin-bottom: 15px;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .form-grid input {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            width: 100%;
+        }
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .success-msg {
+            color: #388e3c;
+            background: #c8e6c9;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .error-msg {
+            color: #d32f2f;
+            background: #ffcdd2;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        
+        /* Products Grid */
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        .product-card {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 10px;
+        }
+        .product-card img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .product-card h3 {
+            color: #333;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+        .product-card p {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        .product-card .price {
+            color: #2e7d32;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .product-card .actions {
+            display: flex;
+            justify-content: flex-end;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="logo">MAB-BILIS Business</div>
+    <ul>
+        <li><a href="index.php">Home</a></li>
+        <li><a href="logout.php">Logout (<?php echo $_SESSION['name']; ?>)</a></li>
+    </ul>
+</nav>
+
+<div class="container">
+    <div class="dashboard-header">
+        <h1>Business Dashboard</h1>
+    </div>
+    
+    <div class="welcome-msg">
+        <h2>Welcome, <?php echo $_SESSION['name']; ?>!</h2>
+        <p>Manage your business information and track your registration status.</p>
+    </div>
+    
+    <?php if ($business): ?>
+        <?php if ($business['status'] === 'pending'): ?>
+            <div class="status-pending">
+                <strong>⏳ Status: Pending Approval</strong><br>
+                Your business registration is waiting for admin approval. You will be able to manage your business once approved.
+            </div>
+        <?php elseif ($business['status'] === 'approved'): ?>
+            <div class="status-approved">
+                <strong>✅ Status: Approved</strong><br>
+                Your business is approved and visible on the MAB-BILIS platform!
+            </div>
+        <?php else: ?>
+            <div class="status-rejected">
+                <strong>❌ Status: Rejected</strong><br>
+                Your business registration was rejected. Please contact the administrator for more information.
+            </div>
+        <?php endif; ?>
+        
+        <div class="business-card" style="margin-top: 30px;">
+            <h2>Your Business Information</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <label>Business Name</label>
+                    <p><?php echo htmlspecialchars($business['business_name']); ?></p>
+                </div>
+                <div class="info-item">
+                    <label>Owner Name</label>
+                    <p><?php echo htmlspecialchars($business['owner_name']); ?></p>
+                </div>
+                <div class="info-item">
+                    <label>Address</label>
+                    <p><?php echo htmlspecialchars($business['address']); ?></p>
+                </div>
+                <div class="info-item">
+                    <label>Contact Number</label>
+                    <p><?php echo htmlspecialchars($business['contact_number']); ?></p>
+                </div>
+                <div class="info-item">
+                    <label>Category</label>
+                    <p><?php echo htmlspecialchars($business['category'] ?: 'General'); ?></p>
+                </div>
+                <div class="info-item">
+                    <label>Status</label>
+                    <p style="color: <?php echo $business['status'] === 'approved' ? '#4caf50' : ($business['status'] === 'pending' ? '#ff9800' : '#f44336'); ?>;">
+                        <?php echo ucfirst($business['status']); ?>
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <?php if ($business['status'] === 'approved'): ?>
+        <div class="business-card" id="productsSection" style="margin-top: 30px;">
+            <h2>Your Products</h2>
+            
+            <?php if ($product_message): ?>
+                <div class="<?php echo strpos($product_message, 'Error') !== false ? 'error-msg' : 'success-msg'; ?>">
+                    <?php echo $product_message; ?>
+                </div>
+            <?php endif; ?>
+            
+            <button class="btn btn-add" onclick="toggleProductForm()" style="margin-bottom: 20px;">+ Add New Product</button>
+            
+            <div id="addProductForm" class="add-product-form" style="display: none;">
+                <h3>Add New Product</h3>
+                <form method="POST" action="">
+                    <div class="form-grid">
+                        <input type="text" name="product_name" placeholder="Product Name" required>
+                        <input type="text" name="product_description" placeholder="Description">
+                        <input type="number" name="product_price" placeholder="Price" step="0.01" required>
+                        <input type="text" name="product_category" placeholder="Category">
+                        <input type="text" name="product_image" placeholder="Image URL">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" name="add_product" class="btn btn-add">Add Product</button>
+                        <button type="button" class="btn btn-delete" onclick="toggleProductForm()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+            
+            <?php if (count($products) > 0): ?>
+                <div class="products-grid">
+                    <?php foreach ($products as $product): ?>
+                        <div class="product-card">
+                            <img src="<?php echo htmlspecialchars($product['image']); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>">
+                            <h3><?php echo htmlspecialchars($product['name']); ?></h3>
+                            <p><?php echo htmlspecialchars($product['description']); ?></p>
+                            <p class="category">Category: <?php echo htmlspecialchars($product['category']); ?></p>
+                            <p class="price">₱<?php echo number_format($product['price'], 2); ?></p>
+                            <div class="actions">
+                                <a href="business_dashboard.php?delete_product=<?php echo $product['id']; ?>" class="btn btn-delete" onclick="return confirm('Are you sure you want to delete this product?')">Delete</a>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php else: ?>
+                <div class="empty-state">No products yet. Click "Add New Product" to add your first product.</div>
+            <?php endif; ?>
+        </div>
+        <?php else: ?>
+        <div class="business-card" style="margin-top: 30px;">
+            <div class="empty-state">Your business must be approved to manage products.</div>
+        </div>
+        <?php endif; ?>
+        
+    <?php else: ?>
+        <div class="business-card">
+            <div class="empty-state">No business information found.</div>
+        </div>
+    <?php endif; ?>
+</div>
+
+<script>
+    function toggleProductForm() {
+        const form = document.getElementById('addProductForm');
+        if (form.style.display === 'none') {
+            form.style.display = 'block';
+        } else {
+            form.style.display = 'none';
+        }
+    }
+</script>
+
+</body>
+</html>

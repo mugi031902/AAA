@@ -1,0 +1,6 @@
+<?php
+// Generate password hash for admin
+$hash = password_hash('admin123', PASSWORD_DEFAULT);
+echo "Hash: " . $hash . "\n";
+echo "Verify: " . (password_verify('admin123', $hash) ? 'TRUE' : 'FALSE');
+?>

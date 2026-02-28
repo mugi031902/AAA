@@ -1,0 +1,477 @@
+<?php
+// Start session
+session_start();
+
+// Include database config
+include "config.php";
+
+// Check if user is logged in
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit;
+}
+
+// Check if user is admin
+if ($_SESSION['role'] !== 'admin') {
+    header("Location: business_dashboard.php");
+    exit;
+}
+
+// Handle approve business
+if (isset($_GET['approve'])) {
+    $business_id = intval($_GET['approve']);
+    mysqli_query($conn, "UPDATE businesses SET status = 'approved' WHERE id = $business_id");
+    header("Location: admin_dashboard.php");
+    exit;
+}
+
+// Handle reject business
+if (isset($_GET['reject'])) {
+    $business_id = intval($_GET['reject']);
+    mysqli_query($conn, "UPDATE businesses SET status = 'rejected' WHERE id = $business_id");
+    header("Location: admin_dashboard.php");
+    exit;
+}
+
+// Handle delete business
+if (isset($_GET['delete_business'])) {
+    $business_id = intval($_GET['delete_business']);
+    // Delete associated products first
+    mysqli_query($conn, "DELETE FROM products WHERE business_id = $business_id");
+    mysqli_query($conn, "DELETE FROM businesses WHERE id = $business_id");
+    header("Location: admin_dashboard.php");
+    exit;
+}
+
+// Handle add tourist spot
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add_spot'])) {
+    $name = mysqli_real_escape_string($conn, $_POST['spot_name']);
+    $description = mysqli_real_escape_string($conn, $_POST['spot_description']);
+    $location = mysqli_real_escape_string($conn, $_POST['spot_location']);
+    $image = mysqli_real_escape_string($conn, $_POST['spot_image']);
+    
+    if (!$image) {
+        $image = "https://img.icons8.com/color/96/000000/place-marker.png";
+    }
+    
+    mysqli_query($conn, "INSERT INTO tourist_spots (name, description, location, image) VALUES ('$name', '$description', '$location', '$image')");
+    header("Location: admin_dashboard.php");
+    exit;
+}
+
+// Handle delete tourist spot
+if (isset($_GET['delete_spot'])) {
+    $spot_id = intval($_GET['delete_spot']);
+    // Delete associated bookings first
+    mysqli_query($conn, "DELETE FROM bookings WHERE spot_id = $spot_id");
+    mysqli_query($conn, "DELETE FROM tourist_spots WHERE id = $spot_id");
+    header("Location: admin_dashboard.php");
+    exit;
+}
+
+// Handle confirm booking
+if (isset($_GET['confirm_booking'])) {
+    $booking_id = intval($_GET['confirm_booking']);
+    mysqli_query($conn, "UPDATE bookings SET status = 'confirmed' WHERE id = $booking_id");
+    header("Location: admin_dashboard.php");
+    exit;
+}
+
+// Handle cancel booking
+if (isset($_GET['cancel_booking'])) {
+    $booking_id = intval($_GET['cancel_booking']);
+    mysqli_query($conn, "UPDATE bookings SET status = 'cancelled' WHERE id = $booking_id");
+    header("Location: admin_dashboard.php");
+    exit;
+}
+
+// Get statistics
+$total_businesses = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM businesses"));
+$approved_businesses = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM businesses WHERE status = 'approved'"));
+$pending_businesses = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM businesses WHERE status = 'pending'"));
+
+// Get pending businesses
+$pending_sql = "SELECT b.*, u.name as owner_name FROM businesses b JOIN users u ON b.user_id = u.id WHERE b.status = 'pending' ORDER BY b.id DESC";
+$pending_result = mysqli_query($conn, $pending_sql);
+$pending_businesses_list = [];
+while ($row = mysqli_fetch_assoc($pending_result)) {
+    $pending_businesses_list[] = $row;
+}
+
+// Get all businesses
+$all_biz_sql = "SELECT b.*, u.name as owner_name FROM businesses b JOIN users u ON b.user_id = u.id ORDER BY b.id DESC";
+$all_biz_result = mysqli_query($conn, $all_biz_sql);
+$all_businesses = [];
+while ($row = mysqli_fetch_assoc($all_biz_result)) {
+    $all_businesses[] = $row;
+}
+
+// Get tourist spots
+$spots_sql = "SELECT * FROM tourist_spots ORDER BY id DESC";
+$spots_result = mysqli_query($conn, $spots_sql);
+$tourist_spots = [];
+while ($row = mysqli_fetch_assoc($spots_result)) {
+    $tourist_spots[] = $row;
+}
+
+// Get bookings
+$bookings_sql = "SELECT bk.*, ts.name as spot_name FROM bookings bk LEFT JOIN tourist_spots ts ON bk.spot_id = ts.id ORDER BY bk.id DESC";
+$bookings_result = mysqli_query($conn, $bookings_sql);
+$bookings = [];
+while ($row = mysqli_fetch_assoc($bookings_result)) {
+    $bookings[] = $row;
+}
+
+$message = "";
+if (isset($_GET['msg'])) {
+    if ($_GET['msg'] == 'approved') {
+        $message = "Business approved successfully!";
+    } elseif ($_GET['msg'] == 'rejected') {
+        $message = "Business rejected!";
+    } elseif ($_GET['msg'] == 'deleted') {
+        $message = "Business deleted successfully!";
+    } elseif ($_GET['msg'] == 'spot_added') {
+        $message = "Tourist spot added successfully!";
+    } elseif ($_GET['msg'] == 'spot_deleted') {
+        $message = "Tourist spot deleted successfully!";
+    } elseif ($_GET['msg'] == 'booking_confirmed') {
+        $message = "Booking confirmed successfully!";
+    } elseif ($_GET['msg'] == 'booking_cancelled') {
+        $message = "Booking cancelled!";
+    }
+}
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - MAB-BILIS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Roboto', sans-serif;
+        }
+        body {
+            background: #e8f5e9;
+            min-height: 100vh;
+        }
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 50px;
+            background: #2e7d32;
+            color: #fff;
+        }
+        .navbar .logo {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+        .navbar ul {
+            display: flex;
+            list-style: none;
+            gap: 20px;
+        }
+        .navbar ul li a {
+            color: #fff;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .navbar ul li a:hover {
+            text-decoration: underline;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .dashboard-header h1 {
+            color: #2e7d32;
+            font-size: 32px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        .stat-card {
+            background: #fff;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .stat-card h3 {
+            color: #2e7d32;
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+        .stat-card p {
+            color: #666;
+            font-size: 16px;
+        }
+        .section {
+            background: #fff;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .section h2 {
+            color: #2e7d32;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        .business-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        .business-item:last-child {
+            border-bottom: none;
+        }
+        .business-info h3 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+        .business-info p {
+            color: #666;
+            font-size: 14px;
+        }
+        .business-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.3s;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+        }
+        .btn-approve {
+            background: #4caf50;
+            color: #fff;
+        }
+        .btn-approve:hover {
+            background: #388e3c;
+        }
+        .btn-reject {
+            background: #f44336;
+            color: #fff;
+        }
+        .btn-reject:hover {
+            background: #d32f2f;
+        }
+        .btn-delete {
+            background: #ff9800;
+            color: #fff;
+        }
+        .btn-delete:hover {
+            background: #e65100;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        .success-msg {
+            color: #388e3c;
+            background: #c8e6c9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        /* Add Spot Form */
+        .add-form {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .add-form input, .add-form textarea {
+            padding: 10px;
+            width: 100%;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .add-form .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="logo">MAB-BILIS Admin</div>
+    <ul>
+        <li><a href="index.php">Home</a></li>
+        <li><a href="logout.php">Logout (<?php echo $_SESSION['name']; ?>)</a></li>
+    </ul>
+</nav>
+
+<div class="container">
+    <div class="dashboard-header">
+        <h1>Admin Dashboard</h1>
+    </div>
+    
+    <?php if ($message): ?>
+        <div class="success-msg"><?php echo $message; ?></div>
+    <?php endif; ?>
+    
+    <div class="stats">
+        <div class="stat-card">
+            <h3><?php echo $total_businesses; ?></h3>
+            <p>Total Businesses</p>
+        </div>
+        <div class="stat-card">
+            <h3><?php echo $approved_businesses; ?></h3>
+            <p>Approved Businesses</p>
+        </div>
+        <div class="stat-card">
+            <h3><?php echo $pending_businesses; ?></h3>
+            <p>Pending Approvals</p>
+        </div>
+    </div>
+    
+    <div class="section">
+        <h2>Pending Business Approvals</h2>
+        <?php if (count($pending_businesses_list) > 0): ?>
+            <?php foreach ($pending_businesses_list as $business): ?>
+                <div class="business-item">
+                    <div class="business-info">
+                        <h3><?php echo htmlspecialchars($business['business_name']); ?></h3>
+                        <p>Owner: <?php echo htmlspecialchars($business['owner_name']); ?></p>
+                        <p>Address: <?php echo htmlspecialchars($business['address']); ?></p>
+                        <p>Contact: <?php echo htmlspecialchars($business['contact_number']); ?></p>
+                    </div>
+                    <div class="business-actions">
+                        <a href="admin_dashboard.php?approve=<?php echo $business['id']; ?>" class="btn btn-approve" onclick="return confirm('Approve this business?')">Approve</a>
+                        <a href="admin_dashboard.php?reject=<?php echo $business['id']; ?>" class="btn btn-reject" onclick="return confirm('Reject this business?')">Reject</a>
+                        <a href="admin_dashboard.php?delete_business=<?php echo $business['id']; ?>" class="btn btn-delete" onclick="return confirm('Delete this business? This will also delete all products.')">Delete</a>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <div class="empty-state">No pending businesses to approve.</div>
+        <?php endif; ?>
+    </div>
+    
+    <div class="section">
+        <h2>All Businesses</h2>
+        <?php if (count($all_businesses) > 0): ?>
+            <?php foreach ($all_businesses as $business): ?>
+                <div class="business-item">
+                    <div class="business-info">
+                        <h3><?php echo htmlspecialchars($business['business_name']); ?></h3>
+                        <p>Owner: <?php echo htmlspecialchars($business['owner_name']); ?></p>
+                        <p>Address: <?php echo htmlspecialchars($business['address']); ?></p>
+                        <p>Status: <strong style="color: <?php echo $business['status'] === 'approved' ? '#4caf50' : ($business['status'] === 'pending' ? '#ff9800' : '#f44336'); ?>;"><?php echo ucfirst($business['status']); ?></strong></p>
+                    </div>
+                    <div class="business-actions">
+                        <?php if ($business['status'] === 'pending'): ?>
+                            <a href="admin_dashboard.php?approve=<?php echo $business['id']; ?>" class="btn btn-approve" onclick="return confirm('Approve this business?')">Approve</a>
+                            <a href="admin_dashboard.php?reject=<?php echo $business['id']; ?>" class="btn btn-reject" onclick="return confirm('Reject this business?')">Reject</a>
+                        <?php endif; ?>
+                        <a href="admin_dashboard.php?delete_business=<?php echo $business['id']; ?>" class="btn btn-delete" onclick="return confirm('Delete this business? This will also delete all products.')">Delete</a>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <div class="empty-state">No businesses registered yet.</div>
+        <?php endif; ?>
+    </div>
+    
+    <div class="section">
+        <h2>Tourist Spots Management</h2>
+        <div style="margin-bottom: 20px;">
+            <button class="btn btn-approve" onclick="document.getElementById('addSpotForm').style.display='block'">Add New Tourist Spot</button>
+        </div>
+        
+        <div id="addSpotForm" class="add-form" style="display: none;">
+            <form method="POST" action="">
+                <input type="text" name="spot_name" placeholder="Spot Name" required>
+                <textarea name="spot_description" placeholder="Description" rows="3"></textarea>
+                <input type="text" name="spot_location" placeholder="Location" required>
+                <input type="text" name="spot_image" placeholder="Image URL">
+                <div class="btn-group">
+                    <button type="submit" name="add_spot" class="btn btn-approve">Add Spot</button>
+                    <button type="button" class="btn btn-reject" onclick="document.getElementById('addSpotForm').style.display='none'">Cancel</button>
+                </div>
+            </form>
+        </div>
+        
+        <?php if (count($tourist_spots) > 0): ?>
+            <?php foreach ($tourist_spots as $spot): ?>
+                <div class="business-item">
+                    <div class="business-info">
+                        <h3><?php echo htmlspecialchars($spot['name']); ?></h3>
+                        <p><?php echo htmlspecialchars($spot['description']); ?></p>
+                        <p>Location: <?php echo htmlspecialchars($spot['location']); ?></p>
+                    </div>
+                    <div class="business-actions">
+                        <a href="admin_dashboard.php?delete_spot=<?php echo $spot['id']; ?>" class="btn btn-delete" onclick="return confirm('Delete this tourist spot? This will also delete all bookings.')">Delete</a>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <div class="empty-state">No tourist spots registered yet.</div>
+        <?php endif; ?>
+    </div>
+    
+    <div class="section">
+        <h2>Bookings Management</h2>
+        <?php if (count($bookings) > 0): ?>
+            <?php foreach ($bookings as $booking): ?>
+                <div class="business-item">
+                    <div class="business-info">
+                        <h3><?php echo htmlspecialchars($booking['user_name']); ?></h3>
+                        <p>Spot: <?php echo htmlspecialchars($booking['spot_name']); ?></p>
+                        <p>Email: <?php echo htmlspecialchars($booking['user_email']); ?></p>
+                        <p>Phone: <?php echo htmlspecialchars($booking['user_phone']); ?></p>
+                        <p>Visit Date: <?php echo htmlspecialchars($booking['visit_date']); ?></p>
+                        <p>Guests: <?php echo htmlspecialchars($booking['number_of_guests']); ?></p>
+                        <p>Status: <strong><?php echo ucfirst($booking['status']); ?></strong></p>
+                    </div>
+                    <div class="business-actions">
+                        <?php if ($booking['status'] === 'pending'): ?>
+                            <a href="admin_dashboard.php?confirm_booking=<?php echo $booking['id']; ?>" class="btn btn-approve" onclick="return confirm('Confirm this booking?')">Confirm</a>
+                            <a href="admin_dashboard.php?cancel_booking=<?php echo $booking['id']; ?>" class="btn btn-reject" onclick="return confirm('Cancel this booking?')">Cancel</a>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <div class="empty-state">No bookings yet.</div>
+        <?php endif; ?>
+    </div>
+</div>
+
+</body>
+</html>

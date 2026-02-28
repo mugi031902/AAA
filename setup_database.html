@@ -1,0 +1,130 @@
+<?php
+// Database Setup and Test Script
+
+echo "<h1>MAB-BILIS Database Setup</h1>";
+
+// Database connection
+$host = "localhost";
+$user = "root";
+$pass = "";
+$db = "mab_biliss";
+
+$conn = mysqli_connect($host, $user, $pass, $db);
+
+if (!$conn) {
+    die("<p style='color:red;'>Connection failed: " . mysqli_connect_error() . "</p>");
+}
+
+echo "<p style='color:green;'>✓ Database connected successfully!</p>";
+
+// Check and create tables if needed
+echo "<h2>Checking Tables...</h2>";
+
+// Create users table if not exists
+$sql = "CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    role ENUM('admin', 'business') DEFAULT 'business',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)";
+
+if (mysqli_query($conn, $sql)) {
+    echo "<p>✓ Users table ready</p>";
+} else {
+    echo "<p>Error creating users table: " . mysqli_error($conn) . "</p>";
+}
+
+// Create businesses table if not exists
+$sql = "CREATE TABLE IF NOT EXISTS businesses (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    business_name VARCHAR(150) NOT NULL,
+    address VARCHAR(255) NOT NULL,
+    contact_number VARCHAR(50) NOT NULL,
+    status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+    description TEXT,
+    category VARCHAR(100),
+    image VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+)";
+
+if (mysqli_query($conn, $sql)) {
+    echo "<p>✓ Businesses table ready</p>";
+} else {
+    echo "<p>Error creating businesses table: " . mysqli_error($conn) . "</p>";
+}
+
+// Insert default admin if not exists
+$check_admin = "SELECT * FROM users WHERE email='admin@mab-bilis.com'";
+$result = mysqli_query($conn, $check_admin);
+
+if (mysqli_num_rows($result) == 0) {
+    $admin_password = password_hash("admin123", PASSWORD_DEFAULT);
+    $sql = "INSERT INTO users (name, email, password, role) VALUES ('Admin', 'admin@mab-bilis.com', '$admin_password', 'admin')";
+    if (mysqli_query($conn, $sql)) {
+        echo "<p>✓ Default admin account created (email: admin@mab-bilis.com, password: admin123)</p>";
+    }
+} else {
+    echo "<p>✓ Admin account already exists</p>";
+}
+
+// Insert sample businesses if not exists
+$check_biz = "SELECT * FROM businesses";
+$result = mysqli_query($conn, $check_biz);
+
+if (mysqli_num_rows($result) == 0) {
+    // Get admin user id
+    $admin_result = mysqli_query($conn, "SELECT id FROM users WHERE email='admin@mab-bilis.com'");
+    $admin_row = mysqli_fetch_assoc($admin_result);
+    $admin_id = $admin_row['id'];
+    
+    $sql = "INSERT INTO businesses (user_id, business_name, address, contact_number, status, description, category, image) VALUES 
+    ($admin_id, 'KERR IT SOLUTIONS', 'Mabinay, Negros Oriental', '09123456789', 'approved', 'Browse and order from registered local shops in Mabinay easily and quickly.', 'IT Services', 'https://img.icons8.com/color/96/000000/shop.png'),
+    ($admin_id, 'Don Macchiatos', 'Mabinay, Negros Oriental', '09223456789', 'approved', 'Track and receive your items conveniently with real-time updates.', 'Food & Beverage', 'https://img.icons8.com/color/96/000000/delivery.png'),
+    ($admin_id, 'Mabinay Bakery', 'Mabinay Public Market', '09323456789', 'approved', 'Get fresh products delivered straight from local markets.', 'Bakery', 'https://img.icons8.com/color/96/000000/bread.png')";
+    
+    if (mysqli_query($conn, $sql)) {
+        echo "<p>✓ Sample businesses inserted</p>";
+    }
+} else {
+    echo "<p>✓ Businesses already exist</p>";
+}
+
+// Display all data
+echo "<h2>Users Table:</h2>";
+$result = mysqli_query($conn, "SELECT * FROM users");
+echo "<table border='1' cellpadding='10'>";
+echo "<tr><th>ID</th><th>Name</th><th>Email</th><th>Role</th></tr>";
+while ($row = mysqli_fetch_assoc($result)) {
+    echo "<tr>";
+    echo "<td>" . $row['id'] . "</td>";
+    echo "<td>" . $row['name'] . "</td>";
+    echo "<td>" . $row['email'] . "</td>";
+    echo "<td>" . $row['role'] . "</td>";
+    echo "</tr>";
+}
+echo "</table>";
+
+echo "<h2>Businesses Table:</h2>";
+$result = mysqli_query($conn, "SELECT * FROM businesses");
+echo "<table border='1' cellpadding='10'>";
+echo "<tr><th>ID</th><th>Business Name</th><th>Address</th><th>Status</th></tr>";
+while ($row = mysqli_fetch_assoc($result)) {
+    echo "<tr>";
+    echo "<td>" . $row['id'] . "</td>";
+    echo "<td>" . $row['business_name'] . "</td>";
+    echo "<td>" . $row['address'] . "</td>";
+    echo "<td>" . $row['status'] . "</td>";
+    echo "</tr>";
+}
+echo "</table>";
+
+echo "<h2 style='color:green;'>✓ Database setup complete!</h2>";
+echo "<p>You can now use the website with MySQL database.</p>";
+echo "<p><a href='index.php'>Go to Homepage</a> | <a href='login.php'>Login Page</a></p>";
+
+mysqli_close($conn);
+?>

@@ -1,0 +1,28 @@
+<?php
+include "config.php";
+
+$name = $_POST['name'];
+$email = $_POST['email'];
+$password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+$business_name = $_POST['business_name'];
+$address = $_POST['address'];
+$contact_number = $_POST['contact_number'];
+
+// Check if email exists
+$check = mysqli_query($conn, "SELECT * FROM users WHERE email='$email'");
+if (mysqli_num_rows($check) > 0) {
+    die("Email already registered.");
+}
+
+// Insert into users
+mysqli_query($conn, "INSERT INTO users (name, email, password, role)
+VALUES ('$name', '$email', '$password', 'business')");
+
+$user_id = mysqli_insert_id($conn);
+
+// Insert into businesses
+mysqli_query($conn, "INSERT INTO businesses (user_id, business_name, address, contact_number)
+VALUES ('$user_id', '$business_name', '$address', '$contact_number')");
+
+echo "Registration successful! Waiting for admin approval.";
+?>

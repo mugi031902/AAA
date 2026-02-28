@@ -1,0 +1,37 @@
+<?php
+include "config.php";
+
+$email = $_POST['email'];
+$password = $_POST['password'];
+
+$result = mysqli_query($conn, "SELECT * FROM users WHERE email='$email'");
+
+if (mysqli_num_rows($result) == 1) {
+    $row = mysqli_fetch_assoc($result);
+
+    if (password_verify($password, $row['password'])) {
+
+        $_SESSION['user_id'] = $row['id'];
+        $_SESSION['role'] = $row['role'];
+
+        if ($row['role'] == 'admin') {
+            header("Location: admin_dashboard.php");
+        } else {
+            // Check if business is approved
+            $business = mysqli_query($conn, "SELECT * FROM businesses WHERE user_id='{$row['id']}'");
+            $biz = mysqli_fetch_assoc($business);
+
+            if ($biz['status'] != 'approved') {
+                die("Waiting for admin approval.");
+            }
+
+            header("Location: business_dashboard.php");
+        }
+
+    } else {
+        echo "Invalid password.";
+    }
+} else {
+    echo "Email not found.";
+}
+?>

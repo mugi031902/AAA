@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Business Products</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="navbar">
+  <h2 id="businessName">Products</h2>
+  <a href="index.php">⬅ Back</a>
+</header>
+
+<div class="products-container" id="productList"></div>
+
+<script src="app.js"></script>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const business = params.get("business");
+
+  const businessTitle = document.getElementById("businessName");
+  const productList = document.getElementById("productList");
+
+  if (products[business]) {
+    businessTitle.textContent = business.replace(/-/g, " ").toUpperCase();
+
+    products[business].forEach(product => {
+      productList.innerHTML += `
+        <div class="product-card">
+          <img src="${product.image}" alt="${product.name}">
+          <h3>${product.name}</h3>
+          <p>${product.description}</p>
+          <strong>${product.price}</strong>
+        </div>
+      `;
+    });
+  } else {
+    productList.innerHTML = "<p>No products available.</p>";
+  }
+</script>
+
+</body>
+</html>
